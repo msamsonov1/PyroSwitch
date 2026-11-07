@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PyroSwitch: Autonomous Battery Isolation Pyrotechnic Actuator Verifier</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- MathJax v3 Bulletproof Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #05070d;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 0;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .formula-box {
+      background-color: #03050a;
+      padding: 0.85rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #1f2937;
+      color: #67e8f9;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #242f48;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+    @media print {
+      body {
+        background-color: #ffffff;
+        color: #000000;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#05070d] text-slate-200 antialiased custom-scrollbar">
+
+  <!-- Top Navigation & System Status Bar -->
+  <header class="border-b border-gray-800/80 bg-[#080c14]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Logo & SBIR Identifier -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-lg text-white tracking-wide">PyroSwitch</span>
+            <span class="px-2 py-0.5 text-xs font-mono-code rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">NASA SBIR T11.02</span>
+            <span id="systemStatusBadge" class="px-2 py-0.5 text-xs font-mono-code rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> NOMINAL BUS
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Spacecraft Battery Safety & Autonomous Pyrotechnic Initiator Impedance Verifier</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-1.5 bg-gray-950/80 p-1.5 rounded-xl border border-gray-800/80 text-sm font-medium">
+        <button id="tabBtnSim" onclick="switchTab('sim')" class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-cyan-300 bg-cyan-950/40 border border-cyan-500/40 shadow-sm">
+          <i data-lucide="activity" class="w-4 h-4"></i> Live HUD & Sim
+        </button>
+        <button id="tabBtnPhysics" onclick="switchTab('physics')" class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="atom" class="w-4 h-4"></i> Core Physics
+        </button>
+        <button id="tabBtnProposal" onclick="switchTab('proposal')" class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="file-check-2" class="w-4 h-4"></i> NASA SBIR/STTR
+        </button>
+        <button id="tabBtnARR" onclick="switchTab('arr')" class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="trending-up" class="w-4 h-4"></i> Commercial ARR
+        </button>
+      </nav>
+
+      <!-- Action Panel -->
+      <div class="hidden lg:flex items-center gap-2 text-xs font-mono-code">
+        <div class="text-right">
+          <div class="text-slate-400">TEST CARRIER: <span class="text-slate-200">50.0 µA RMS</span></div>
+          <div class="text-slate-500">FREQ: <span class="text-cyan-400">100 Hz – 100 kHz</span></div>
+        </div>
+        <button onclick="window.print()" class="p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 text-slate-300 hover:text-white" title="Export Telemetry / Spec Sheet">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+
+    <!-- TAB 1: LIVE SIMULATION & TELEMETRY HUD -->
+    <section id="viewSim" class="space-y-6">
+      
+      <!-- Top Metric Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono-code">
+            <span>RESISTANCE ($R$)</span>
+            <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="metricR" class="text-2xl font-bold font-mono-code text-white">1.048</span>
+            <span class="text-xs text-slate-400 font-mono-code">Ω (Ohmic)</span>
+          </div>
+          <div class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-mono-code">
+            <i data-lucide="check" class="w-3 h-3"></i> Nominal $0.95 - 1.15 \ \Omega$
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono-code">
+            <span>PHASE ANGLE ($\theta$)</span>
+            <i data-lucide="compass" class="w-4 h-4 text-violet-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="metricTheta" class="text-2xl font-bold font-mono-code text-white">+0.12</span>
+            <span class="text-xs text-slate-400 font-mono-code">deg (°)</span>
+          </div>
+          <div id="metricThetaStatus" class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-mono-code">
+            <i data-lucide="check" class="w-3 h-3"></i> Pure Resistive ($\theta \approx 0^\circ$)
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono-code">
+            <span>PARASITIC REACTANCE</span>
+            <i data-lucide="zap-off" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="metricReactance" class="text-2xl font-bold font-mono-code text-white">2.2</span>
+            <span class="text-xs text-slate-400 font-mono-code">mΩ (Impedance skew)</span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1 font-mono-code">
+            $X_s = X_L - X_C$ @ 10 kHz
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono-code">
+            <span>ACTUATOR INTEGRITY</span>
+            <i data-lucide="badge-check" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="metricHealth" class="text-2xl font-bold font-mono-code text-emerald-400">99.4</span>
+            <span class="text-xs text-slate-400 font-mono-code">% RELIABILITY</span>
+          </div>
+          <div id="metricHealthDesc" class="text-[11px] text-slate-400 mt-1 font-mono-code">
+            Zero Firing Pin Bridging
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Interactive Workstation: Visualizer + Primary Phase-Space Chart -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left 7 Cols: Hardware Micro-Inspection Interactive Canvas -->
+        <div class="lg:col-span-7 flex flex-col p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+              <h2 class="text-sm font-semibold text-white tracking-wide">Pyrotechnic Actuator Squib Cross-Section (Micro-Inspection)</h2>
+            </div>
+            <span class="text-xs font-mono-code text-slate-400">Micro-AC Interrogation: <span class="text-cyan-300">Active</span></span>
+          </div>
+
+          <div class="relative w-full h-[320px] rounded-lg bg-[#03050a] border border-gray-800 overflow-hidden flex items-center justify-center">
+            <canvas id="actuatorCanvas" class="w-full h-full block"></canvas>
+            <div class="absolute bottom-2 left-3 text-[11px] font-mono-code text-slate-500 pointer-events-none flex items-center gap-3">
+              <span>● PtW Initiator Bridge-wire</span>
+              <span class="text-amber-500/70">■ Hermetic Ceramic Header</span>
+              <span class="text-cyan-500/70">▲ High-Voltage Bus Lug</span>
+            </div>
+          </div>
+
+          <!-- Real-Time Physical Fault State Description -->
+          <div class="mt-3 p-3 rounded-lg bg-gray-950/60 border border-gray-800 text-xs font-mono-code text-slate-300 flex items-start gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-cyan-400 mt-0.5 shrink-0"></i>
+            <div>
+              <span class="text-white font-semibold">Active Hardware State:</span>
+              <span id="hardwareStateText">Nominal 1.05 Ω Tophet-A bridgewire. Zero moisture or parasitic shunt detected. Flat ohmic response across 0.1 to 100 kHz sweep. Ready for high-current pyro-bus cutoff.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Primary Diagnostic Chart ($R$ vs $\theta$) -->
+        <div class="lg:col-span-5 flex flex-col p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
+              <h2 class="text-sm font-semibold text-white tracking-wide">Primary Diagnostic: Resistance ($R$) vs. Phase Angle ($\theta$)</h2>
+            </div>
+            <span class="text-xs font-mono-code text-violet-300">Phase-Space Map</span>
+          </div>
+
+          <div class="relative flex-1 min-h-[320px]">
+            <canvas id="phaseSpaceChart"></canvas>
+          </div>
+
+          <div class="mt-2 text-[11px] font-mono-code text-slate-400 flex items-center justify-between border-t border-gray-800/80 pt-2">
+            <span>Nominal Safe Cell: [0.95 - 1.15 Ω, ±2°]</span>
+            <span class="text-rose-400 font-semibold">Hazard Envelope: $|\theta| > 8^\circ$</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Secondary Telemetry Plots & Closed-Loop Control Station -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left 8 Cols: Dual Time-Series & Frequency Sweep Plots -->
+        <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Bode-Style Impedance vs Frequency -->
+          <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-semibold text-slate-200">AC Sweep Bode Plot: $|Z|(f)$ & $\theta(f)$</h3>
+              <span class="text-[10px] font-mono-code text-cyan-400">Multi-Decade EIS</span>
+            </div>
+            <div class="h-[180px]">
+              <canvas id="bodeChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Time-Series Phase Drift & Current Carrier -->
+          <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-semibold text-slate-200">Telemetry History: Phase Skew $\Delta\theta(t)$</h3>
+              <span class="text-[10px] font-mono-code text-emerald-400">Live 10-Hz Stream</span>
+            </div>
+            <div class="h-[180px]">
+              <canvas id="telemetryHistoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 4 Cols: Autonomous Hardware Control & Fault Injection -->
+        <div class="lg:col-span-4 p-4 rounded-xl bg-gray-900/40 border border-gray-800/80 backdrop-blur flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Closed-Loop Test Controls
+              </h3>
+              <span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-gray-800 text-slate-300">AUTO-OBSERVER: ACTIVE</span>
+            </div>
+
+            <!-- Environmental Condition Sliders -->
+            <div class="space-y-3 text-xs">
+              <div>
+                <div class="flex justify-between text-slate-400 mb-1">
+                  <span>Relative Humidity / Header Moisture:</span>
+                  <span id="sliderHumidityVal" class="font-mono-code text-cyan-300">12%</span>
+                </div>
+                <input id="sliderHumidity" type="range" min="0" max="100" value="12" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="updateSimParameters()">
+              </div>
+
+              <div>
+                <div class="flex justify-between text-slate-400 mb-1">
+                  <span>Squib Header Temp:</span>
+                  <span id="sliderTempVal" class="font-mono-code text-cyan-300">-15 °C</span>
+                </div>
+                <input id="sliderTemp" type="range" min="-65" max="125" value="-15" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="updateSimParameters()">
+              </div>
+
+              <div>
+                <div class="flex justify-between text-slate-400 mb-1">
+                  <span>Lead Sheath Pin Stress:</span>
+                  <span id="sliderStressVal" class="font-mono-code text-cyan-300">2%</span>
+                </div>
+                <input id="sliderStress" type="range" min="0" max="100" value="2" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="updateSimParameters()">
+              </div>
+            </div>
+
+            <!-- Fault Injection Matrix -->
+            <div class="mt-4 pt-3 border-t border-gray-800">
+              <div class="text-[11px] font-semibold text-slate-400 mb-2">INJECT HARDWARE FAULT MODES:</div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <button onclick="injectFault('bridged_pin')" class="p-2 rounded bg-gray-800/80 hover:bg-rose-950/40 border border-gray-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-200 text-left transition flex flex-col">
+                  <span class="font-semibold flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-rose-400"></i> Firing Pin Bridge</span>
+                  <span class="text-[10px] text-slate-400 font-mono-code">Inductive short ($-\Delta R, +\theta$)</span>
+                </button>
+                <button onclick="injectFault('moisture_leak')" class="p-2 rounded bg-gray-800/80 hover:bg-cyan-950/40 border border-gray-700 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-200 text-left transition flex flex-col">
+                  <span class="font-semibold flex items-center gap-1"><i data-lucide="droplet" class="w-3 h-3 text-cyan-400"></i> Moisture Intrusion</span>
+                  <span class="text-[10px] text-slate-400 font-mono-code">Capacitive shunt ($-\theta$)</span>
+                </button>
+                <button onclick="injectFault('corroded_wire')" class="p-2 rounded bg-gray-800/80 hover:bg-amber-950/40 border border-gray-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-200 text-left transition flex flex-col">
+                  <span class="font-semibold flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3 text-amber-400"></i> Corroded Bridge</span>
+                  <span class="text-[10px] text-slate-400 font-mono-code">High $R$ necking ($+\Delta R$)</span>
+                </button>
+                <button onclick="injectFault('cold_misaligned')" class="p-2 rounded bg-gray-800/80 hover:bg-violet-950/40 border border-gray-700 hover:border-violet-500/50 text-slate-300 hover:text-violet-200 text-left transition flex flex-col">
+                  <span class="font-semibold flex items-center gap-1"><i data-lucide="snowflake" class="w-3 h-3 text-violet-400"></i> Cold Squib Misalign</span>
+                  <span class="text-[10px] text-slate-400 font-mono-code">Contact freeze ($R+\Delta X$)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset / Auto-Mitigation Trigger -->
+          <div class="mt-4 pt-3 border-t border-gray-800 flex gap-2">
+            <button onclick="resetToNominal()" class="w-full py-2 px-3 rounded-lg bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Restore Nominal Squib Baseline
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 2: CORE PHYSICS & MATHEMATICAL MODEL -->
+    <section id="viewPhysics" class="hidden space-y-6">
+      
+      <div class="p-5 rounded-2xl bg-gray-900/40 border border-gray-800/80 backdrop-blur">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="microscope" class="w-5 h-5 text-cyan-400"></i>
+          Electrodynamic & Complex Impedance Characterization
+        </h2>
+        <p class="text-sm text-slate-300 mt-1">
+          Why DC multimeter checks miss lethal launch-pad pyrotechnic faults: Formulating the complex impedance vector $\mathbf{Z}(j\omega)$ across micro-ampere AC interrogation.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Card 1: Governing Complex Impedance Equations -->
+        <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-2 rounded bg-cyan-500/10 text-cyan-400 font-mono-code text-xs">EQ-01</div>
+              <h3 class="font-semibold text-white">Complex Initiator Impedance & Phase Formulation</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              A pristine 1-Ampere/1-Watt no-fire NASA Standard Initiator (NSI) or spacecraft battery cutoff squib consists of a pure Tophet-A (80/20 Nickel-Chromium) bridge-wire. Under low excitation, it is strictly resistive. When parasitic dielectric admittance or inductive coupling from metallic debris or corrosion layers occurs, the total equivalent impedance becomes:
+            </p>
+            
+            <div class="formula-box">
+              $$Z(j\omega) = \frac{R_{\text{wire}} + j\omega L_{\text{pin}}}{1 + j\omega R_{\text{wire}} C_{\text{shunt}} - \omega^2 L_{\text{pin}} C_{\text{shunt}}}$$
+            </div>
+
+            <p class="text-xs text-slate-300 mt-2">
+              The scalar real resistance $R$ and terminal phase angle $\theta(\omega)$ measured across the battery bus cutoff terminals are directly derived as:
+            </p>
+
+            <div class="formula-box">
+              $$\theta(\omega) = \arctan\left( \frac{\operatorname{Im}[Z(j\omega)]}{\operatorname{Re}[Z(j\omega)]} \right) = \arctan\left( \frac{\omega L_{\text{pin}} - \omega C_{\text{shunt}}\left(R_{\text{wire}}^2 + \omega^2 L_{\text{pin}}^2\right)}{R_{\text{wire}}} \right)$$
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800 text-[11px] text-cyan-300 font-mono-code">
+            Key Rule: For pure bridge-wire, $L_{\text{pin}} \to 0, C_{\text{shunt}} \to 0 \implies \theta \equiv 0.00^\circ$.
+          </div>
+        </div>
+
+        <!-- Card 2: Microscopic Material Physics of Failure Modes -->
+        <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-2 rounded bg-violet-500/10 text-violet-400 font-mono-code text-xs">EQ-02</div>
+              <h3 class="font-semibold text-white">Microscopic Degradation & Electrochemical Shunting</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              In space launch vehicle launch countdowns, high-voltage battery cutoff actuators are exposed to marine launch atmospheres (e.g., Kennedy Space Center LC-39A / Cape Canaveral Space Force Station). Moisture ingress through micro-cracked glass-to-metal ceramic headers creates an electrochemical double layer:
+            </p>
+
+            <div class="formula-box">
+              $$C_{\text{dl}} = \frac{\varepsilon_0 \varepsilon_r A_{\text{header}}}{d_{\text{Debye}}}, \quad Y_{\text{electrolyte}} = G_{\text{ionic}} + j\omega C_{\text{dl}}$$
+            </div>
+
+            <p class="text-xs text-slate-300 mt-2">
+              Standard 10 mA DC continuity checks fail to detect this because polarization instantly charges $C_{\text{dl}}$, registering an illusory "healthy 1.05 Ω". When the emergency 50 A bus-isolation current pulse is fired, capacitive arc tracking flashover diverts current away from the pyrotechnic charge, causing a catastrophic actuator hangfire or total bus runaway.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800 text-[11px] text-violet-300 font-mono-code">
+            DC Ohmmeter Blind Spot: Detects $R_{\text{wire}} \parallel R_{\text{ionic}}$ but misses reactive dielectric collapse.
+          </div>
+        </div>
+
+        <!-- Card 3: Diagnostic State Observer & Inversion Algorithm -->
+        <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-2 rounded bg-amber-500/10 text-amber-400 font-mono-code text-xs">EQ-03</div>
+              <h3 class="font-semibold text-white">Multi-Frequency Inversion & State Observer Algorithm</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              PyroSwitch synthesizes an ultra-safe $50\ \mu\text{A}$ RMS programmable sinusoidal carrier (over $1000\times$ below the 1.0 A / 1.0 W no-fire threshold). By sampling quadrature components $V_I(t)$ and $V_Q(t)$ across dual lock-in channels:
+            </p>
+
+            <div class="formula-box">
+              $$V_I = \frac{2}{T}\int_0^T v(t)\sin(\omega t)\,dt, \quad V_Q = \frac{2}{T}\int_0^T v(t)\cos(\omega t)\,dt$$
+            </div>
+
+            <p class="text-xs text-slate-300 mt-2">
+              The autonomous state vector $\mathbf{x} = [R_{\text{wire}}, L_{\text{pin}}, C_{\text{shunt}}]^T$ is resolved via recursive least squares (RLS) inversion, separating physical bridge corrosion ($+\Delta R$) from header moisture ($+\Delta C \to -\theta$) and conductive particulate debris bridge ($+\Delta L \to +\theta$).
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800 text-[11px] text-amber-300 font-mono-code">
+            No-Fire Guarantee: Interrogation Power $P_{\text{test}} = I_{\text{rms}}^2 R \approx (50\,\mu\text{A})^2 (1\,\Omega) = 2.5\,\text{nW} \ll 1\,\text{W}$.
+          </div>
+        </div>
+
+        <!-- Card 4: Hardware Specifications & Flight Qualification -->
+        <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-2 rounded bg-emerald-500/10 text-emerald-400 font-mono-code text-xs">SPEC-04</div>
+              <h3 class="font-semibold text-white">Flight Hardware Substrate & Isolation Architecture</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Designed as an embedded sub-module for high-voltage battery management units (BMU) powering 100V–800V spacecraft architectures (Gateway PPE, Human Landing System, Commercial LEO Stations):
+            </p>
+
+            <div class="formula-box">
+              $$V_{\text{isolation}} \ge 2500\ \text{V}_{\text{DC}}, \quad \text{CMRR} > 120\ \text{dB}\ \text{at}\ 100\ \text{kHz}$$
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-300 mt-2">
+              <div class="flex justify-between border-b border-gray-800/60 pb-1">
+                <span class="text-slate-400">ASIC Target:</span>
+                <span class="font-mono-code text-white">Rad-Hard SOI CMOS (100 krad TID)</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-800/60 pb-1">
+                <span class="text-slate-400">Measurement Range:</span>
+                <span class="font-mono-code text-white">0.100 Ω to 50.000 Ω ($\pm 0.5\ \text{m}\Omega$)</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-800/60 pb-1">
+                <span class="text-slate-400">Phase Sensitivity:</span>
+                <span class="font-mono-code text-white">$\pm 0.05^\circ$ resolution</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Bandwidth:</span>
+                <span class="font-mono-code text-white">10 Hz to 250 kHz sweep (2.5 ms execution)</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800 text-[11px] text-emerald-300 font-mono-code">
+            Standards: NASA-STD-4003, MIL-STD-1576, AFSPCMAN 91-710 Range Safety.
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 3: $225,000 NASA SBIR/STTR PROPOSAL & HARDWARE TRANSITION -->
+    <section id="viewProposal" class="hidden space-y-6">
+      
+      <!-- Proposal Overview Banner -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-gray-900/60 to-violet-950/40 border border-cyan-500/30">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono-code font-bold">NASA SBIR/STTR 2026</span>
+              <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-mono-code">Topic: T11.02 Spacecraft Battery Safety Systems</span>
+            </div>
+            <h2 class="text-xl font-bold text-white tracking-wide">PyroSwitch: Autonomous Battery Isolation Pyrotechnic Actuator Verifier</h2>
+            <p class="text-xs text-slate-300 mt-1 max-w-3xl">
+              A 6-Month, $225,000 Phase I STTR program in partnership with the University of Central Florida (UCF) CATER Labs to build, calibrate, and flight-qualify a low-power AC impedance phase-angle diagnostic engine that completely eliminates unverified pyrotechnic squib failures in deep-space battery buses.
+            </p>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-2xl font-bold font-mono-code text-cyan-400">$225,000</div>
+            <div class="text-xs text-slate-400 font-mono-code">PHASE I DURATION: 6 MONTHS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- University STTR Allocation Breakdown -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800">
+          <div class="text-xs text-slate-400 font-mono-code">PRIME CONTRACTOR</div>
+          <div class="text-lg font-bold text-white mt-1">DeepSpace Power LLC</div>
+          <div class="text-cyan-400 font-mono-code text-sm mt-0.5">$157,500 (70.0%)</div>
+          <p class="text-xs text-slate-400 mt-2">
+            System architectural design, high-frequency lock-in detection DSP algorithm, firmware synthesis, and FPGA test hardware integration.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-purple-500/30 bg-purple-950/10">
+          <div class="text-xs text-purple-400 font-mono-code flex items-center justify-between">
+            <span>RESEARCH INSTITUTION (STTR)</span>
+            <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-[10px]">MANDATORY 30%</span>
+          </div>
+          <div class="text-lg font-bold text-white mt-1">Univ. of Central Florida (UCF)</div>
+          <div class="text-purple-300 font-mono-code text-sm mt-0.5">$67,500 (30.0% Allocation)</div>
+          <p class="text-xs text-slate-300 mt-2">
+            Center for Advanced Turbomachinery and Energy Research (CATER) – high-vacuum chamber, thermal cycling (-65°C to +125°C), and inert squib bridge-wire electro-corrosion testing.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800">
+          <div class="text-xs text-slate-400 font-mono-code">GOVERNMENT COGNIZANCE</div>
+          <div class="text-lg font-bold text-white mt-1">NASA Glenn & KSC</div>
+          <div class="text-emerald-400 font-mono-code text-sm mt-0.5">Civil Space Transition</div>
+          <p class="text-xs text-slate-400 mt-2">
+            Transition path for Lunar Gateway Power and Propulsion Element (PPE) high-voltage Li-ion battery bus emergency pyro-disconnects.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- 6-Month Milestone Roadmap -->
+      <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i> Phase I Work Breakdown Structure & Milestones (Months 1–6)
+        </h3>
+
+        <div class="space-y-4">
+          <div class="p-3 rounded-lg bg-gray-950/60 border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center font-mono-code text-xs font-bold shrink-0">M1</span>
+              <div>
+                <h4 class="text-sm font-semibold text-white">Electrodynamic Impedance Modeling & Parasitic Reactance Map</h4>
+                <p class="text-xs text-slate-400">Formulation of complete 3D finite-element electromagnetic model of Tophet-A bridgewire squibs under glass-to-metal seal corrosion and pin misalignment.</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0 text-xs font-mono-code text-slate-400">Month 1–2 <span class="text-cyan-400">($45,000)</span></div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-gray-950/60 border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center font-mono-code text-xs font-bold shrink-0">M2</span>
+              <div>
+                <h4 class="text-sm font-semibold text-white">Dual-Channel Micro-Carrier Lock-In DSP Synthesis</h4>
+                <p class="text-xs text-slate-400">Development of 50 µA RMS sinusoidal excitation generator and sub-milliohm quadrature lock-in detection engine on radiation-tolerant Xilinx Artix-7 FPGA.</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0 text-xs font-mono-code text-slate-400">Month 3–4 <span class="text-cyan-400">($65,000)</span></div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-gray-950/60 border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="w-7 h-7 rounded bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center font-mono-code text-xs font-bold shrink-0">M3</span>
+              <div>
+                <h4 class="text-sm font-semibold text-white">Environmental Thermal-Vacuum Testing at UCF CATER Labs</h4>
+                <p class="text-xs text-slate-400">Validation across 12 inert NSI test articles inside UCF's high-vacuum thermal chambers under -65°C to +125°C and 95% coastal humidity injection.</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0 text-xs font-mono-code text-slate-400">Month 4–5 <span class="text-purple-300">($67,500 UCF)</span></div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-gray-950/60 border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="w-7 h-7 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center font-mono-code text-xs font-bold shrink-0">M4</span>
+              <div>
+                <h4 class="text-sm font-semibold text-white">Autonomous Launch-Go/No-Go Decision Logic & Phase II Transition Spec</h4>
+                <p class="text-xs text-slate-400">Integration with NASA spacecraft ground control telemetry protocols (CCSDS), final report, and Phase II flight prototype architecture roadmap ($1.1M).</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0 text-xs font-mono-code text-slate-400">Month 6 <span class="text-cyan-400">($47,500)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase II & Flight Transition Architecture -->
+      <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2">Phase II Transition Pathway ($850K – $1.2M)</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            In Phase II, DeepSpace Power and UCF will transition the benchtop FPGA architecture into a spaceflight-qualified radiation-hardened Application Specific Integrated Circuit (ASIC) or compact flight daughtercard. The system will be demonstrated on full-scale pyrotechnic battery disconnect assemblies currently baselined for Orion European Service Module and lunar surface mobility vehicles.
+          </p>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Government Program Target Match</h4>
+          <ul class="text-xs text-slate-400 space-y-1 font-mono-code">
+            <li>• Artemis Campaign: Lunar Gateway Power & Propulsion Element (PPE)</li>
+            <li>• Human Landing System (HLS) Ascent Element 400V Battery Bus</li>
+            <li>• Commercial LEO Destinations (CLD) Starlab / Orbital Reef Life Support Buses</li>
+            <li>• Mars Sample Return (MSR) Lander Pyro-Jettison Verification</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 4: COMMERCIAL & NATIONWIDE ARR BREAKDOWN -->
+    <section id="viewARR" class="hidden space-y-6">
+      
+      <!-- Executive Summary Banner -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-gray-900/60 to-cyan-950/40 border border-emerald-500/30">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-mono-code font-bold">COMMERCIAL TRANSITION</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono-code">Dual-Use Civil Applications</span>
+            </div>
+            <h2 class="text-xl font-bold text-white tracking-wide">Nationwide Civil Market: $218.4M Annual Recurring Revenue (ARR)</h2>
+            <p class="text-xs text-slate-300 mt-1 max-w-3xl">
+              <strong>Executive Summary:</strong> Pyrotechnic safety fuses and rapid-isolation squibs are universally deployed across multi-megawatt battery energy storage, commercial airliners, heavy EVs, and rail. PyroSwitch delivers autonomous, non-destructive continuous verification, replacing scheduled blind replacements with continuous health assurance.
+            </p>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-2xl font-bold font-mono-code text-emerald-400">$218,400,000</div>
+            <div class="text-xs text-slate-400 font-mono-code">ENTERPRISE VALUATION (10x): $2.18B</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commercial ARR Distribution Table -->
+      <div class="p-5 rounded-xl bg-gray-900/40 border border-gray-800 overflow-x-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i> Civil Market Verticals & SaaS Runtime Licensing Breakdown
+          </h3>
+          <span class="text-xs font-mono-code text-slate-400">Model: Enterprise Device Runtime + Cloud Diagnostics</span>
+        </div>
+
+        <table class="w-full text-left text-xs font-mono-code">
+          <thead>
+            <tr class="border-b border-gray-800 text-slate-400">
+              <th class="pb-3 font-semibold">CIVIL MARKET VERTICAL</th>
+              <th class="pb-3 font-semibold">TARGET SAFETY SYSTEM</th>
+              <th class="pb-3 font-semibold">INSTALLED ASSET BASE (US)</th>
+              <th class="pb-3 font-semibold">ANNUAL LICENSE / NODE</th>
+              <th class="pb-3 font-semibold text-right">MATURE ARR</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800/60 text-slate-300">
+            <tr>
+              <td class="py-3 font-bold text-white">Utility-Scale Grid BESS</td>
+              <td class="text-slate-400">1500V Container Pyrofuses & Arc Flash Isolators</td>
+              <td>120,000 Inverters / Enclosures</td>
+              <td>$450 / node / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$54,000,000</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Commercial Aviation (Boeing/Airbus)</td>
+              <td class="text-slate-400">Emergency APU & Lithium Battery Cutoff Squibs</td>
+              <td>28,000 Commercial Aircraft</td>
+              <td>$1,800 / fleet aircraft / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$50,400,000</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Heavy Electric Trucks & Mining (Class 8)</td>
+              <td class="text-slate-400">800V Crash-Isolation Pyrotechnic Battery Cutoffs</td>
+              <td>350,000 Vehicles by 2030</td>
+              <td>$140 / vehicle / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$49,000,000</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Commercial Launch & LEO Satellites</td>
+              <td class="text-slate-400">Fairing Separators, Stage Cutoffs & Solar Array Squibs</td>
+              <td>18,000 Active Satellites / Launchers</td>
+              <td>$1,500 / spacecraft / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$27,000,000</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Electric Passenger Rail & Transit</td>
+              <td class="text-slate-400">Traction Substation High-Speed Pyro-Breakers</td>
+              <td>32,000 Substations & Railcars</td>
+              <td>$650 / breaker / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$20,800,000</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Semiconductor Cleanroom UPS Facilities</td>
+              <td class="text-slate-400">Ultra-Fast Megawatt Solid-State Pyro-Switches</td>
+              <td>14,400 Mission-Critical UPS Benches</td>
+              <td>$1,200 / unit / yr</td>
+              <td class="py-3 text-right font-bold text-emerald-400">$17,200,000</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="border-t-2 border-gray-700 text-white font-bold">
+              <td class="pt-3" colspan="4">TOTAL NATIONWIDE ADDRESSABLE ARR:</td>
+              <td class="pt-3 text-right text-emerald-400 text-sm">$218,400,000</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Detailed Industry Deep-Dive Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <!-- Deep Dive 1: Grid BESS -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <h4 class="font-bold text-white text-sm">1. Utility-Scale Grid Storage (BESS)</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              Containerized 1500V DC battery packs suffer condensation that forms galvanic salt bridges across pyrofuse terminals, skewing phase angle $\theta$ negative prior to catastrophic thermal runaway.
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Utilities rely on simple open/closed continuity lights that pass current through damp corrosion salt crusts, misleading operators into thinking the emergency disconnection fuse is healthy.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-emerald-400 pt-2 border-t border-gray-800">
+            ARR: $54.0M | Target: Fluence, Tesla Megapack, Powin
+          </div>
+        </div>
+
+        <!-- Deep Dive 2: Commercial Aviation -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <h4 class="font-bold text-white text-sm">2. Commercial Aviation Fleet Safety</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              High-altitude thermal cycling induces mechanical micro-fractures in ceramic squib potting, shifting terminal reactance $X_s$ during unpressurized cargo hold freezing (-55°C).
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Airlines blindly replace expensive squibs on rigid calendar schedules (every 18 months), discarding thousands of pristine units while missing cracked pins that freeze shut during transatlantic flights.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-cyan-400 pt-2 border-t border-gray-800">
+            ARR: $50.4M | Target: Delta TechOps, United, Lufthansa Technik
+          </div>
+        </div>
+
+        <!-- Deep Dive 3: Class 8 Heavy EVs -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-violet-400"></span>
+              <h4 class="font-bold text-white text-sm">3. Heavy Commercial EV Trucks & Mining</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              Severe chassis vibration and road de-icing salts create parasitic inductance spikes across pyro-switch battery isolation lugs, detectable via 50 kHz phase shifts.
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Fleet telematics only check battery cell voltage, leaving the mechanical disconnect fuse as a completely unmonitored "black box" until a violent crash occurs and the fuse fails to sever the bus.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-violet-400 pt-2 border-t border-gray-800">
+            ARR: $49.0M | Target: Freightliner, Volvo Trucks, Caterpillar
+          </div>
+        </div>
+
+        <!-- Deep Dive 4: Commercial LEO Constellations -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              <h4 class="font-bold text-white text-sm">4. Commercial LEO Satellite Megaconstellations</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              Solar radiation degradations of harness fluoropolymers shift parasitic pin capacitance $C_{\text{shunt}}$, altering the squib circuit resonant frequency.
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Satellite operators accepted a 3% dead-on-arrival solar wing deployment rate as an inevitable launch risk, having no non-destructive way to test deployment pyrotechnics on orbit.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-amber-400 pt-2 border-t border-gray-800">
+            ARR: $27.0M | Target: Starlink, Project Kuiper, Planet Labs
+          </div>
+        </div>
+
+        <!-- Deep Dive 5: Electric Rail Transit -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <h4 class="font-bold text-white text-sm">5. High-Speed Electric Rail & Transit</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              Electromagnetic interference from overhead catenary sparks masks high-resistance corrosion pits on pyro-breaker trigger lines without continuous lock-in carrier verification.
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Rail operators rely on visual depot inspections once every six months, which cannot see inside hermetically sealed explosive arc-suppression cartridges.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-emerald-400 pt-2 border-t border-gray-800">
+            ARR: $20.8M | Target: Amtrak, Alstom, Siemens Mobility
+          </div>
+        </div>
+
+        <!-- Deep Dive 6: Semi Cleanroom UPS -->
+        <div class="p-4 rounded-xl bg-gray-900/40 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <h4 class="font-bold text-white text-sm">6. Semiconductor Cleanroom UPS Facilities</h4>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Physics in 1 Sentence:</p>
+            <p class="text-xs text-slate-400 bg-gray-950/60 p-2 rounded border border-gray-800 mb-3">
+              Sub-millisecond pyrotechnic isolators in multi-megawatt EUV cleanroom power rooms accumulate metallic airborne dust on terminal leads, causing detectable capacitive phase leakage.
+            </p>
+            <p class="text-xs text-slate-300 font-semibold mb-1">Why Others Missed This (Plain English):</p>
+            <p class="text-xs text-slate-400">
+              Facility engineers assumed industrial UPS breakers are immortal, only discovering firing pin bridging when a factory power surge fries $150M photolithography machines.
+            </p>
+          </div>
+          <div class="mt-3 text-[11px] font-mono-code text-cyan-400 pt-2 border-t border-gray-800">
+            ARR: $17.2M | Target: TSMC Arizona, Intel Ocotillo, Micron
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Direct Collaboration CTA -->
+      <div class="p-5 rounded-xl bg-gray-950 border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h4 class="text-white font-bold text-sm">Partner with DeepSpace Power & University of Central Florida</h4>
+          <p class="text-xs text-slate-400 mt-0.5">Direct inquiries for NASA SBIR T11.02 Phase II licensing, OEM integration, and flight telemetry kits.</p>
+        </div>
+        <a href="mailto:support@rfwavecode.com" class="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold text-xs font-mono-code flex items-center gap-2 transition shrink-0">
+          <i data-lucide="mail" class="w-4 h-4"></i> support@rfwavecode.com
+        </a>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="border-t border-gray-800/80 bg-[#080c14] py-4 px-4 lg:px-8 mt-12 text-xs text-slate-500 font-mono-code">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
+      <div>PyroSwitch NASA SBIR/STTR Topic T11.02 Autonomous Spacecraft Battery Safety Engine</div>
+      <div class="flex items-center gap-4">
+        <span>Prime: DeepSpace Power LLC</span>
+        <span>STTR Partner: UCF CATER Labs (30%)</span>
+        <span class="text-cyan-400">support@rfwavecode.com</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic & Interactive Engine -->
+  <script>
+    // -------------------------------------------------------------
+    // Global State & Simulation Variables
+    // -------------------------------------------------------------
+    let activeTab = 'sim';
+    let simInterval = null;
+    let tickCount = 0;
+
+    // Physical Hardware State
+    let state = {
+      resistance: 1.048,     // Pure Ohmic Resistance (Ohms)
+      phaseAngle: 0.12,      // Phase Angle (Degrees)
+      humidity: 12,          // % Relative Humidity
+      temp: -15,             // Header Temperature (°C)
+      stress: 2,             // Pin mechanical stress (%)
+      faultMode: 'none',     // 'none', 'bridged_pin', 'moisture_leak', 'corroded_wire', 'cold_misaligned'
+      faultSeverity: 0,      // 0 to 1 scale
+      activeCarrier: 50.0,   // micro-amps RMS
+      healthScore: 99.4,
+      historyR: [],
+      historyTheta: [],
+      historyTime: []
+    };
+
+    // Prepopulate 20 historical telemetry ticks
+    for (let i = 0; i < 20; i++) {
+      state.historyR.push(1.05 + (Math.random() - 0.5) * 0.01);
+      state.historyTheta.push(0.1 + (Math.random() - 0.5) * 0.08);
+      state.historyTime.push(`-${(20 - i) * 0.2}s`);
+    }
+
+    // Tab Mapping
+    const tabMapping = {
+      'sim': { viewId: 'viewSim', btnId: 'tabBtnSim' },
+      'physics': { viewId: 'viewPhysics', btnId: 'tabBtnPhysics' },
+      'proposal': { viewId: 'viewProposal', btnId: 'tabBtnProposal' },
+      'arr': { viewId: 'viewARR', btnId: 'tabBtnARR' }
+    };
+
+    function switchTab(tabKey) {
+      if (!tabMapping[tabKey]) return;
+      activeTab = tabKey;
+
+      // Update Navigation button styles and view visibilities
+      Object.keys(tabMapping).forEach(key => {
+        const item = tabMapping[key];
+        const viewEl = document.getElementById(item.viewId);
+        const btnEl = document.getElementById(item.btnId);
+
+        if (key === tabKey) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = 'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-cyan-300 bg-cyan-950/40 border border-cyan-500/40 shadow-sm';
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = 'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200';
+        }
+      });
+
+      // Render math when switching tabs
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().catch(err => console.debug(err));
+      }
+
+      // Re-trigger Canvas Resize if switched to Sim
+      if (tabKey === 'sim') {
+        setTimeout(() => {
+          resizeCanvas();
+          renderActuatorCanvas();
+          if (phaseChart) phaseChart.resize();
+          if (bodeChart) bodeChart.resize();
+          if (telemetryChart) telemetryChart.resize();
+        }, 50);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Canvas Initialization & Rendering
+    // -------------------------------------------------------------
+    const canvas = document.getElementById('actuatorCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 320;
+      canvas.width = w * window.devicePixelRatio;
+      canvas.height = h * window.devicePixelRatio;
+      ctx.resetTransform();
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      renderActuatorCanvas();
+    });
+
+    function renderActuatorCanvas() {
+      if (activeTab !== 'sim' || !canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 320;
+
+      // Dark background
+      ctx.fillStyle = '#03050a';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw Substrate Grid lines
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      const step = 24;
+      for (let x = 0; x < w; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const cx = w / 2;
+      const cy = h / 2 - 10;
+
+      // 1. Outer Ceramic / Steel Squib Body
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(cx - 160, cy - 85, 320, 170, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      // 2. High-Voltage Battery Bus Copper Lugs (Terminals)
+      ctx.fillStyle = '#b45309';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      // Left Bus Lug
+      ctx.beginPath();
+      ctx.roundRect(cx - 200, cy - 25, 45, 50, 4);
+      ctx.fill();
+      ctx.stroke();
+      // Right Bus Lug
+      ctx.beginPath();
+      ctx.roundRect(cx + 155, cy - 25, 45, 50, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Bus connection indicators
+      ctx.fillStyle = '#fef08a';
+      ctx.font = '9px JetBrains Mono';
+      ctx.fillText('+400V BUS', cx - 195, cy + 5);
+      ctx.fillText('ISOL OUT', cx + 160, cy + 5);
+
+      // 3. Hermetic Glass-to-Metal Seal Cavity (Chamber)
+      ctx.fillStyle = '#090d16';
+      ctx.strokeStyle = state.faultMode === 'moisture_leak' ? '#06b6d4' : '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(cx - 110, cy - 55, 220, 110, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // 4. Heavy Firing Feedthrough Pins
+      ctx.fillStyle = '#64748b';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      // Pin A
+      ctx.beginPath();
+      ctx.rect(cx - 70, cy - 10, 35, 20);
+      ctx.fill();
+      ctx.stroke();
+      // Pin B
+      ctx.beginPath();
+      ctx.rect(cx + 35, cy - 10, 35, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      // 5. The Tophet-A Bridge-wire (Centerpiece of the test)
+      ctx.lineWidth = state.faultMode === 'corroded_wire' ? 1.5 : 3.5;
+      ctx.strokeStyle = state.faultMode === 'corroded_wire' ? '#f59e0b' : '#38bdf8';
+
+      ctx.beginPath();
+      ctx.moveTo(cx - 35, cy);
+      // Small intentional bridge curve
+      ctx.quadraticCurveTo(cx, cy - 18, cx + 35, cy);
+      ctx.stroke();
+
+      // 6. Draw Animated Micro-Ampere Test Carrier Waves
+      const t = Date.now() * 0.005;
+      const numWaves = 10;
+      ctx.fillStyle = '#22d3ee';
+      for (let i = 0; i <= numWaves; i++) {
+        const progress = (i / numWaves + (t * 0.3) % 1) % 1;
+        const wx = (cx - 35) + progress * 70;
+        const wy = cy - Math.sin(progress * Math.PI) * 14;
+        
+        ctx.beginPath();
+        ctx.arc(wx, wy, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 7. Visual Overlay for Injected Faults
+      if (state.faultMode === 'bridged_pin') {
+        // Metallic conductive splinter shorting the pins
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 30, cy + 8);
+        ctx.lineTo(cx + 25, cy + 8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText('CONDUCTIVE METALLIC SHUNT', cx - 75, cy + 32);
+      } else if (state.faultMode === 'moisture_leak') {
+        // Capacitive moisture droplets
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
+        for (let j = 0; j < 12; j++) {
+          const dx = cx - 80 + (j * 14);
+          const dy = cy + 20 + Math.sin(j * 1.5) * 8;
+          ctx.beginPath();
+          ctx.arc(dx, dy, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#67e8f9';
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText('ELECTROLYTIC CONDENSATION (PARASITIC C)', cx - 100, cy + 45);
+      } else if (state.faultMode === 'corroded_wire') {
+        // Corroded oxidation pits
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(cx - 5, cy - 12, 3, 0, Math.PI * 2);
+        ctx.arc(cx + 8, cy - 10, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText('BRIDGE OXIDATION / RESISTIVE NECKING', cx - 100, cy - 35);
+      } else if (state.faultMode === 'cold_misaligned') {
+        ctx.strokeStyle = '#a78bfa';
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(cx - 75, cy - 15, 150, 30);
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#c4b5fd';
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText('COLD CONTRACTION PIN SKEW (-15°C)', cx - 85, cy + 35);
+      }
+
+      // Title & Telemetry Stamp
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px JetBrains Mono';
+      ctx.fillText(`CARRIER: 50.0 µA AC | R: ${state.resistance.toFixed(3)} Ω | θ: ${state.phaseAngle >= 0 ? '+' : ''}${state.phaseAngle.toFixed(2)}°`, 12, h - 14);
+    }
+
+    // -------------------------------------------------------------
+    // Chart.js Diagnostic Plots Setup
+    // -------------------------------------------------------------
+    let phaseChart = null;
+    let bodeChart = null;
+    let telemetryChart = null;
+
+    function initCharts() {
+      // 1. Primary Diagnostic: Resistance vs. Phase Angle ($R$ vs $\theta$)
+      const ctxPhase = document.getElementById('phaseSpaceChart').getContext('2d');
+      phaseChart = new Chart(ctxPhase, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            // Live State Trajectory
+            {
+              label: 'Live Operating Point',
+              data: [{ x: state.resistance, y: state.phaseAngle }],
+              backgroundColor: '#38bdf8',
+              borderColor: '#0284c7',
+              borderWidth: 2,
+              pointRadius: 9,
+              pointHoverRadius: 11
+            },
+            // Safe Nominal Cell Envelope
+            {
+              label: 'Nominal Envelope (±2°, 0.95-1.15 Ω)',
+              type: 'line',
+              data: [
+                { x: 0.95, y: -2.0 }, { x: 1.15, y: -2.0 },
+                { x: 1.15, y: 2.0 }, { x: 0.95, y: 2.0 },
+                { x: 0.95, y: -2.0 }
+              ],
+              borderColor: '#10b981',
+              borderWidth: 1.5,
+              borderDash: [4, 4],
+              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+              fill: true,
+              pointRadius: 0
+            },
+            // Hazard Warning Boundaries (Upper Inductive & Lower Capacitive)
+            {
+              label: 'Inductive Hazard Cutoff (+8°)',
+              type: 'line',
+              data: [{ x: 0.6, y: 8.0 }, { x: 2.0, y: 8.0 }],
+              borderColor: '#ef4444',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'Capacitive Hazard Cutoff (-8°)',
+              type: 'line',
+              data: [{ x: 0.6, y: -8.0 }, { x: 2.0, y: -8.0 }],
+              borderColor: '#ef4444',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Resistance R (Ohms)',
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              min: 0.6,
+              max: 1.8,
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Phase Angle θ (deg)',
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 11 }
+              },
+              min: -18,
+              max: 18,
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                boxWidth: 10,
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 10 }
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Multi-Frequency EIS Sweep Bode Plot
+      const ctxBode = document.getElementById('bodeChart').getContext('2d');
+      const freqs = ['100Hz', '500Hz', '1kHz', '5kHz', '10kHz', '50kHz', '100kHz'];
+      bodeChart = new Chart(ctxBode, {
+        type: 'line',
+        data: {
+          labels: freqs,
+          datasets: [
+            {
+              label: 'Impedance Magnitude |Z| (Ω)',
+              data: [1.05, 1.05, 1.05, 1.05, 1.06, 1.07, 1.09],
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              yAxisID: 'y1',
+              tension: 0.3,
+              pointRadius: 3
+            },
+            {
+              label: 'Phase Shift θ (°)',
+              data: [0.05, 0.08, 0.12, 0.25, 0.45, 0.90, 1.45],
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              yAxisID: 'y2',
+              tension: 0.3,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+            },
+            y1: {
+              type: 'linear',
+              position: 'left',
+              title: { display: true, text: '|Z| (Ω)', color: '#06b6d4', font: { size: 9 } },
+              min: 0.5,
+              max: 2.0,
+              grid: { color: '#1e293b' },
+              ticks: { color: '#06b6d4', font: { family: 'JetBrains Mono', size: 9 } }
+            },
+            y2: {
+              type: 'linear',
+              position: 'right',
+              title: { display: true, text: 'θ (°)', color: '#8b5cf6', font: { size: 9 } },
+              min: -15,
+              max: 15,
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#8b5cf6', font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 8, color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          }
+        }
+      });
+
+      // 3. Time Series Telemetry History
+      const ctxTelemetry = document.getElementById('telemetryHistoryChart').getContext('2d');
+      telemetryChart = new Chart(ctxTelemetry, {
+        type: 'line',
+        data: {
+          labels: state.historyTime,
+          datasets: [
+            {
+              label: 'Live θ(t)',
+              data: state.historyTheta,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.2,
+              fill: true,
+              pointRadius: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+            },
+            y: {
+              title: { display: true, text: 'Phase (°)', color: '#94a3b8', font: { size: 9 } },
+              min: -15,
+              max: 15,
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 8, color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Physical Engine & Control Loop Updates
+    // -------------------------------------------------------------
+    function updateSimParameters() {
+      state.humidity = parseFloat(document.getElementById('sliderHumidity').value);
+      state.temp = parseFloat(document.getElementById('sliderTemp').value);
+      state.stress = parseFloat(document.getElementById('sliderStress').value);
+
+      document.getElementById('sliderHumidityVal').innerText = `${state.humidity}%`;
+      document.getElementById('sliderTempVal').innerText = `${state.temp} °C`;
+      document.getElementById('sliderStressVal').innerText = `${state.stress}%`;
+
+      calculateElectrodynamics();
+    }
+
+    function injectFault(faultType) {
+      state.faultMode = faultType;
+      state.faultSeverity = 1.0;
+      calculateElectrodynamics();
+    }
+
+    function resetToNominal() {
+      state.faultMode = 'none';
+      state.faultSeverity = 0;
+      document.getElementById('sliderHumidity').value = 12;
+      document.getElementById('sliderTemp').value = -15;
+      document.getElementById('sliderStress').value = 2;
+      updateSimParameters();
+    }
+
+    function calculateElectrodynamics() {
+      // Base Tophet-A Bridge-wire resistance temperature coefficient: R(T) = R0 * (1 + alpha * (T - T0))
+      // alpha approx 0.0001 / °C for Nichrome
+      let nominalR = 1.05 * (1 + 0.00012 * (state.temp - 20));
+      let nominalTheta = 0.05 + (state.stress * 0.01);
+
+      // Fault dynamics
+      let statusDesc = "Nominal 1.05 Ω Tophet-A bridgewire. Zero moisture or parasitic shunt detected. Flat ohmic response across 0.1 to 100 kHz sweep. Ready for high-current pyro-bus cutoff.";
+      let statusBadge = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> NOMINAL BUS`;
+      let badgeClass = "px-2 py-0.5 text-xs font-mono-code rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5";
+
+      if (state.faultMode === 'bridged_pin') {
+        // Conductive debris: shunt resistance drops, parasitic loop inductance spikes phase positive
+        nominalR = 0.76 + (Math.random() * 0.02);
+        nominalTheta = +11.4 + (Math.random() * 0.4);
+        statusDesc = "CRITICAL HAZARD: Conductive metallic splinter across firing pins. Bridge resistance dropped to 0.76 Ω with +11.4° inductive phase lead. Firing energy will divert into arc short!";
+        statusBadge = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span> FIRING PIN BRIDGE DETECTED`;
+        badgeClass = "px-2 py-0.5 text-xs font-mono-code rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5";
+      } else if (state.faultMode === 'moisture_leak') {
+        // Coastal humidity leak: capacitive dielectric admittance shifts phase negative
+        const moistureEffect = (state.humidity / 100) * 8.5;
+        nominalR = 1.01 - (moistureEffect * 0.02);
+        nominalTheta = -7.8 - moistureEffect;
+        statusDesc = "WARNING: Glass-to-metal header moisture intrusion. Dielectric double-layer admittance skews phase to negative capacitive zone (-12.2°). Risk of arc-tracking hangfire.";
+        statusBadge = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> HEADER MOISTURE LEAK`;
+        badgeClass = "px-2 py-0.5 text-xs font-mono-code rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5";
+      } else if (state.faultMode === 'corroded_wire') {
+        // Bridge-wire corrosion / necking: resistance jumps high, small capacitive phase delay
+        nominalR = 1.58 + (Math.random() * 0.03);
+        nominalTheta = -3.2 + (Math.random() * 0.2);
+        statusDesc = "DEGRADATION: Bridgewire necking / electro-corrosion. Ohmic resistance increased by 50% above specification threshold (1.58 Ω). Bridge will blow open early or fail to detonate.";
+        statusBadge = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> CORRODED BRIDGE-WIRE`;
+        badgeClass = "px-2 py-0.5 text-xs font-mono-code rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5";
+      } else if (state.faultMode === 'cold_misaligned') {
+        // Cold shrinkage misalignment
+        nominalR = 1.22 + (Math.random() * 0.02);
+        nominalTheta = +6.4 + (Math.random() * 0.3);
+        statusDesc = "ALERT: Cold-induced feedthrough pin displacement at -15°C. Micro-gap creates intermittent contact and inductive pin resonance (+6.4°).";
+        statusBadge = `<span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span> COLD SQUIB SKEW`;
+        badgeClass = "px-2 py-0.5 text-xs font-mono-code rounded bg-violet-500/20 text-violet-300 border border-violet-500/40 flex items-center gap-1.5";
+      } else {
+        // Nominal ambient effects
+        if (state.humidity > 60) {
+          nominalTheta -= (state.humidity - 60) * 0.06;
+        }
+      }
+
+      state.resistance = nominalR;
+      state.phaseAngle = nominalTheta;
+
+      // Calculate Reliability Score
+      const rDeviation = Math.abs(state.resistance - 1.05) / 1.05;
+      const thetaDeviation = Math.abs(state.phaseAngle) / 8.0;
+      let health = 100 - (rDeviation * 50 + thetaDeviation * 60);
+      health = Math.max(8.0, Math.min(99.8, health));
+      state.healthScore = health;
+
+      // Update UI elements
+      document.getElementById('metricR').innerText = state.resistance.toFixed(3);
+      document.getElementById('metricTheta').innerText = (state.phaseAngle >= 0 ? '+' : '') + state.phaseAngle.toFixed(2);
+      document.getElementById('metricHealth').innerText = state.healthScore.toFixed(1);
+      document.getElementById('hardwareStateText').innerText = statusDesc;
+      
+      const badge = document.getElementById('systemStatusBadge');
+      badge.className = badgeClass;
+      badge.innerHTML = statusBadge;
+
+      const thetaStatus = document.getElementById('metricThetaStatus');
+      const healthDesc = document.getElementById('metricHealthDesc');
+      if (Math.abs(state.phaseAngle) > 8.0) {
+        thetaStatus.className = 'text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-mono-code';
+        thetaStatus.innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3"></i> Severe Reactive Skew ($|\\theta| > 8^\\circ$)`;
+        healthDesc.innerText = 'IMMINENT MISFIRE RISK';
+        healthDesc.className = 'text-[11px] text-rose-400 mt-1 font-mono-code font-bold';
+      } else if (Math.abs(state.phaseAngle) > 2.0) {
+        thetaStatus.className = 'text-[11px] text-amber-400 mt-1 flex items-center gap-1 font-mono-code';
+        thetaStatus.innerHTML = `<i data-lucide="alert-circle" class="w-3 h-3"></i> Marginal Phase Offset`;
+        healthDesc.innerText = 'Degraded Isolation Threshold';
+        healthDesc.className = 'text-[11px] text-amber-400 mt-1 font-mono-code';
+      } else {
+        thetaStatus.className = 'text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-mono-code';
+        thetaStatus.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i> Pure Resistive ($\\theta \\approx 0^\\circ$)`;
+        healthDesc.innerText = 'Zero Firing Pin Bridging';
+        healthDesc.className = 'text-[11px] text-slate-400 mt-1 font-mono-code';
+      }
+
+      // Refresh icons in dynamic containers
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------
+    // Live Loop & Telemetry Step
+    // -------------------------------------------------------------
+    function stepSimulation() {
+      tickCount++;
+
+      // Subtle noise on live measurements
+      const noiseR = (Math.random() - 0.5) * 0.003;
+      const noiseTheta = (Math.random() - 0.5) * 0.02;
+
+      const currentR = state.resistance + noiseR;
+      const currentTheta = state.phaseAngle + noiseTheta;
+
+      // Update Phase Space Chart
+      if (phaseChart && phaseChart.data.datasets[0]) {
+        phaseChart.data.datasets[0].data = [{ x: currentR, y: currentTheta }];
+        
+        // Color head based on hazard envelope
+        if (Math.abs(currentTheta) > 8.0 || currentR < 0.85 || currentR > 1.4) {
+          phaseChart.data.datasets[0].backgroundColor = '#f43f5e';
+          phaseChart.data.datasets[0].borderColor = '#e11d48';
+        } else if (Math.abs(currentTheta) > 2.0) {
+          phaseChart.data.datasets[0].backgroundColor = '#f59e0b';
+          phaseChart.data.datasets[0].borderColor = '#d97706';
+        } else {
+          phaseChart.data.datasets[0].backgroundColor = '#38bdf8';
+          phaseChart.data.datasets[0].borderColor = '#0284c7';
+        }
+        phaseChart.update('none');
+      }
+
+      // Update Telemetry Stream every 3 ticks
+      if (tickCount % 3 === 0 && telemetryChart) {
+        state.historyTheta.shift();
+        state.historyTheta.push(currentTheta);
+        telemetryChart.data.datasets[0].data = state.historyTheta;
+        
+        if (Math.abs(currentTheta) > 8.0) {
+          telemetryChart.data.datasets[0].borderColor = '#f43f5e';
+          telemetryChart.data.datasets[0].backgroundColor = 'rgba(244, 63, 94, 0.1)';
+        } else {
+          telemetryChart.data.datasets[0].borderColor = '#10b981';
+          telemetryChart.data.datasets[0].backgroundColor = 'rgba(16, 185, 129, 0.1)';
+        }
+        telemetryChart.update('none');
+      }
+
+      // Update Bode Sweep according to state
+      if (tickCount % 6 === 0 && bodeChart) {
+        const freqsMultipliers = [1.0, 1.0, 1.01, 1.03, 1.06, 1.15, 1.30];
+        const updatedZ = freqsMultipliers.map((m, idx) => {
+          return currentR * (1 + (idx * 0.015 * (state.phaseAngle / 10)));
+        });
+        const updatedTheta = freqsMultipliers.map((m, idx) => {
+          return currentTheta * (1 + idx * 0.25);
+        });
+        bodeChart.data.datasets[0].data = updatedZ;
+        bodeChart.data.datasets[1].data = updatedTheta;
+        bodeChart.update('none');
+      }
+
+      renderActuatorCanvas();
+    }
+
+    // -------------------------------------------------------------
+    // Window Onload Initialization
+    // -------------------------------------------------------------
+    window.onload = function() {
+      lucide.createIcons();
+      resizeCanvas();
+      initCharts();
+      calculateElectrodynamics();
+
+      // Start Simulation Loop at 25 Hz
+      simInterval = setInterval(stepSimulation, 40);
+
+      // Initial MathJax Typesetting
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().catch(err => console.debug(err));
+      }
+    };
+  </script>
+</body>
+</html>
